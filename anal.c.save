@@ -1,9 +1,0 @@
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <avr/io.h>
-#include <avr/interrupt.h>
-
-
-ADMUX = (1 << REFS1) 
-ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
