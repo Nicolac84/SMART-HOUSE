@@ -1,8 +1,12 @@
 #include <util/delay.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <avr/sleep.h>
+#include <avr/interrupt.h>
 #include <avr/io.h>
 #include <string.h>
+
+#include <avr_common/uart.h>
 
 #define BAUD 19600
 #define MYUBRR (F_CPU/16/BAUD-1)
@@ -75,9 +79,25 @@ void UART_putString(uint8_t* buf){
 }
 
 
+//fun per attivare  le porte analogiche
+void adc_init()
+{
+    // AREF = AVcc
+    ADMUX = (1<<REFS0);
+ 
+    // ADC Enable and prescaler of 128
+    // 16000000/128 = 125000
+    ADCSRA = (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);
+}
+
+
 
 #define MAX_BUF 256
 int main(void){
+
+ printf_init(); 
+
+ adc_init();
 
 // we will use timer 1
   TCCR1A=TCCRA_MASK;
@@ -150,7 +170,39 @@ void AllPin (uint8_t lum){
         OCR4CL=lum;  //8
 }
 
+//prova analogici
+
+
+
+uint16_t adc_read(uint8_t ch)
+{
+  // select the corresponding channel 0~7
+  // ANDing with ’7′ will always keep the value
+  // of ‘ch’ between 0 and 7
+  ch &= 0b00000111;  // AND operation with 7
+  ADMUX = (ADMUX & 0xF8)|ch; // clears the bottom 3 bits before ORing
+ 
+  // start single convertion
+  // write ’1′ to ADSC
+  ADCSRA |= (1<<ADSC);
+ 
+  // wait for conversion to complete
+  // ADSC becomes ’0′ again
+  // till then, run loop continuously
+  while(ADCSRA & (1<<ADSC));
+ 
+  return (ADC);
+}
+
  while(1) {
+
+    
+uint16_t p=adc_read(5);
+uint16_t p2=adc_read(7);
+  
+   printf("switch  %d,%d\n",p,p2);
+ // UART_putString((uint16_t*)"valore %u \n",p); questa nn va e nn so il perche!
+    
     UART_getString(buf);
     UART_putString((uint8_t*)"received\n");
     UART_putString(buf);
