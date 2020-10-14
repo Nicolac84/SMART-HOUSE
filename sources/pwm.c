@@ -74,3 +74,19 @@ uint8_t pwm_regulate(uint8_t pwm_pin, uint8_t val) {
   }
   return 0;
 }
+
+// Get the current duty cicle value for a PWM pin
+uint8_t pwm_read(uint8_t pwm_pin) {
+  if (pwm_pin > PWM12) return 0;
+  switch (pwm_pin) {
+    case PWM2:  return OCR3BL;
+    case PWM3:  return OCR3CL;
+    case PWM5:  return OCR3AL;
+    case PWM6:  return OCR4AL;
+    case PWM7:  return OCR4BL;
+    case PWM8:  return OCR4CL;
+    case PWM11: return OCR1AL;
+    case PWM12: return OCR1BL;
+  }
+ return 0;
+}

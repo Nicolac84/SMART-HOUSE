@@ -6,82 +6,52 @@
 #include "digitin.h"
 #include "analog.h"
 
-// [AUX] Map communication pin values to effective values
+// Map communication pin values to effective values
 static uint8_t pinmap(uint8_t com);
 
 uint8_t packet_create(packet_t *p, uint8_t pin, uint8_t operation, 
-    uint8_t len, const void *body){
+    uint8_t body_size, const void *body){
+  if (!p || pin > COM_DIGITIN7 || operation >= COM_OP_LIMIT ||
+      body_size > BODY_MAX_LEN || (!body && body_size))
+    return 1;
 
-  if (pin > COM_DIGITIN7) return 1;
-  if (operation > COM_OP_NAK) return 1;
-  p->header = (pin << 12) | (operation << 8) | len;
+  p->header = packet_header(pin, operation, body_size);
 
-  uint8_t i;
-  for (i=0; i < len; i++){
-    p->body[i] = ((uint8_t*) body)[i];
-  }
+  if (body) memcpy(p->body, body, body_size);
+
   checksum_t cksum = packet_checksum(p);
-  memcpy(p->body+len, &cksum, sizeof(cksum));
+  memcpy(p->body + body_size, &cksum, sizeof(cksum));
 
   return 0;
 }
 
 
 // Computes and returns the uncomplemented checksum
-static checksum_t _checksum(const packet_t *p) {
-  uint8_t len = packet_get_size(p) + sizeof(p->header);
-  uint8_t *data = (uint8_t*) p;
-
-  uint32_t checksum = 0xffff;
-
-  for(uint8_t i=0; i+1 < len; i+=2) {
-    uint16_t word;
-    memcpy(&word, data+i, 2);
-    checksum += word;
-    if(checksum > 0xffff){
-      checksum -=0xffff ;
-    }
-  }
-
-  if(len&1){
-    uint16_t word=0;
-    memcpy(&word, data+len-1, 1);
-    checksum += word;
-    if(checksum > 0xffff) {
-      checksum -= 0xffff;
-    }
-  }
-
+static checksum_t _checksum(const void *data, uint8_t size) {
+  checksum_t checksum = 0;
+  for (uint8_t i=0; i < size; ++i)
+    checksum ^= ((uint8_t*) data)[i];
   return checksum;
 }
 
 
 // Compute the complemented checksum
 checksum_t packet_checksum (const packet_t *p){
-  checksum_t checksum = _checksum(p);
-  return ~checksum; 
+  return _checksum(p, packet_get_size(p) - sizeof(checksum_t));
 }
 
 
 // Returns 0 on sane packet, 1 on corrupted packet
 uint8_t packet_validate(const packet_t *p) {
-  checksum_t checksum = _checksum(p);
-
-  uint8_t len = packet_get_size(p);
-  checksum_t packet_cksum;
-  memcpy(&packet_cksum, p->body + len, sizeof(checksum_t));
-
-  checksum += packet_cksum;
-  if(checksum > 0xffff) checksum -= 0xffff;
-
-  return (~checksum) ? 1 : 0;
+  return _checksum(p, packet_get_size(p)) ? 1 : 0;
 }
 
-void communication_send(uint8_t pin, uint8_t operation, uint8_t len,
+
+void communication_send(uint8_t pin, uint8_t operation, uint8_t body_size,
     const void *body) {
-  packet_t p;
-  packet_create(&p, pin, operation, len, body);
-  serial_tx((uint8_t*) &p, len + 2 + sizeof(checksum_t));
+  packet_t p[1];
+  packet_create(p, pin, operation, body_size, body);
+  serial_tx((uint8_t*) p, packet_get_size(p));
 }
 
 
@@ -97,27 +67,29 @@ typedef enum STATE_E {
   STATE_NAK
 } state_t;
 
+// Callback for communication operation
 typedef state_t (*operation_f)(const packet_t*, uint8_t pin);
 
-// [AUX] Transmit current automa state
-static inline void tx_state(state_t state);
-
+// Do nothing (COM_OP_NULL is unexpected)
 static state_t _op_null(const packet_t *p, uint8_t pin) {
   return STATE_NAK;
 }
 
+// Turn a PWM pin ON
 static state_t _op_on(const packet_t *p, uint8_t pin) {
   if (pin < COM_PWM0 || pin > COM_PWM7) return STATE_NAK;
   pwm_on(pinmap(pin));
   return STATE_ACK;
 }
 
+// Turn a PWM pin OFF
 static state_t _op_off(const packet_t *p, uint8_t pin) {
   if (pin < COM_PWM0 || pin > COM_PWM7) return STATE_NAK;
   pwm_off(pinmap(pin));
   return STATE_ACK;
 }
 
+// Get the current value for a pin
 static state_t _op_get_val(const packet_t *p, uint8_t pin) {
   if (pin < COM_PWM0 || pin > COM_DIGITIN7) return STATE_NAK;
   uint8_t real = pinmap(pin);
@@ -134,29 +106,32 @@ static state_t _op_get_val(const packet_t *p, uint8_t pin) {
   return STATE_LISTEN;
 }
 
+// Set the current value for a PWM pin
 static state_t _op_set_val(const packet_t *p, uint8_t pin) {
   if (pin < COM_PWM0 || pin > COM_PWM7) return STATE_NAK;
   pwm_regulate(pinmap(pin), p->body[0]);
   return STATE_ACK;
 }
 
+// Get the name for a pin
 static state_t _op_get_name(const packet_t *p, uint8_t pin) {
   if (pin < COM_PWM0 || pin > COM_DIGITIN7) return STATE_NAK;
   uint8_t real = pinmap(pin);
 
   if (pin >= COM_PWM0 && pin <= COM_PWM7)
-    communication_send(pin, COM_OP_ACK,
-        strlen((const char*) status.pwm[real])+1, status.pwm[real]);
+    communication_send(pin, COM_OP_ACK, strlen(
+          (const char*)(status.pwm[real]))+1, status.pwm[real]);
   else if (pin >= COM_ANALOG0 && pin <= COM_ANALOG7)
-    communication_send(pin, COM_OP_ACK,
-        strlen((const char*) status.analog[real])+1, status.analog[real]);
+    communication_send(pin, COM_OP_ACK, strlen(
+          (const char*) status.analog[real])+1, status.analog[real]);
   else
-    communication_send(pin, COM_OP_ACK,
-        strlen((const char*) status.digital_in[real])+1, status.digital_in[real]);
+    communication_send(pin, COM_OP_ACK, strlen(
+          (const char*) status.digital_in[real])+1, status.digital_in[real]);
 
   return STATE_LISTEN;
 }
 
+// Setthe name for a pin
 static state_t _op_set_name(const packet_t *p, uint8_t pin) {
   if (pin < COM_PWM0 || pin > COM_DIGITIN7) return STATE_NAK;
   uint8_t real = pinmap(pin);
@@ -170,14 +145,29 @@ static state_t _op_set_name(const packet_t *p, uint8_t pin) {
   return STATE_ACK;
 }
 
+// Save status to the EEPROM
+static state_t _op_save_status(const packet_t *p, uint8_t pin) {
+  status_save();
+  return STATE_ACK;
+}
+
 // ACK and NAK are not expected, do nothing
 static state_t _op_ack(const packet_t *p, uint8_t pin) { return STATE_LISTEN; }
 static state_t _op_nak(const packet_t *p, uint8_t pin) { return STATE_LISTEN; }
 
 
+// Operation table
 static operation_f op_table[] = {
-  _op_null, _op_on, _op_off, _op_get_val, _op_set_val, _op_get_name,
-  _op_set_name, _op_ack, _op_nak,
+  _op_null,
+  _op_ack,
+  _op_nak,
+  _op_on,
+  _op_off,
+  _op_get_val,
+  _op_set_val,
+  _op_get_name,
+  _op_set_name,
+  _op_save_status
 };
 
 
@@ -193,82 +183,56 @@ static uint8_t pinmap(uint8_t com) {
 }
 
 
+// Communication handler routine
 void communication_handler(void) {
   static state_t state = STATE_LISTEN;
 
-  packet_t packet;
-  uint8_t *_packet = (uint8_t*) &packet;
-  uint8_t received = 0;
+  packet_t rx[1];
+  uint8_t *_rx = (uint8_t*) rx;
 
   uint8_t port = COM_PIN_NULL;
   uint8_t operation = COM_OP_NULL;
 
-  packet_t tx_packet;
+  uint8_t received = 0;
+  uint8_t to_recv;
 
-  uint8_t to_recv; // Auxiliary variable
-
-  uint8_t exit_loop = 0;
-  while (!exit_loop) {
-    tx_state(state);
+  // Main handler loop
+  while (1) {
     switch (state) {
-      case STATE_LISTEN:
+      case STATE_LISTEN:  // Check for available data
         if (serial_available()) ++state;
         else return;
         break;
-      case STATE_HEADER:
-        serial_rx(_packet, 2);
-        received += 2;
+      case STATE_HEADER:  // Receive packet header
+        serial_rx(_rx, sizeof(header_t));
+        received = sizeof(header_t);
         ++state;
         break;
-      case STATE_BODY:
-        to_recv = packet_get_size(&packet) + sizeof(checksum_t);
-        serial_rx(_packet + received, to_recv);
+      case STATE_BODY:  // Receive packet body and checksum
+        to_recv = packet_get_size(rx) - sizeof(header_t);
+        serial_rx(_rx + received, to_recv);
         received += to_recv;
         ++state;
         break;
-      case STATE_CKSUM:
-        //state = packet_validate(&packet) ? STATE_NAK : STATE_UNROLL;
-        state = STATE_UNROLL; // DEBUG ONLY
+      case STATE_CKSUM:  // Check packet sanity
+        state = packet_validate(rx) ? STATE_NAK : STATE_UNROLL;
         break;
-      case STATE_UNROLL:
-        port = packet_get_pin(&packet);
-        operation = packet_get_operation(&packet);
+      case STATE_UNROLL:  // Extract instructions from packet
+        port = packet_get_pin(rx);
+        operation = packet_get_operation(rx);
         ++state;
         break;
-      case STATE_EXECUTE:
-        // TODO: Debug only, Remove
-        serial_tx(&port, 1);
-        serial_tx(&operation, 1);
-        serial_tx(&packet, 4);
-        while (1) ;
-
-        state = op_table[operation](&packet, port);
+      case STATE_EXECUTE:  // Execute the command given by the client
+        state = op_table[operation](rx, port);
         break;
-      case STATE_ACK:
-        packet_create(&tx_packet, COM_PIN_NULL, COM_OP_ACK, 0, NULL);
-        serial_tx((void*) &tx_packet, 2 + sizeof(checksum_t));
+      case STATE_ACK:  // Acknowledge an operation
+        communication_send(COM_PIN_NULL, COM_OP_ACK, 0, NULL);
         state = STATE_LISTEN;
         break;
-      case STATE_NAK:
-        packet_create(&tx_packet, COM_PIN_NULL, COM_OP_NAK, 0, NULL);
-        serial_tx((void*) &tx_packet, 2 + sizeof(checksum_t));
+      case STATE_NAK:  // Raise an error to the client
+        communication_send(COM_PIN_NULL, COM_OP_NAK, 0, NULL);
         state = STATE_LISTEN;
         break;
     }
   }
-}
-
-
-static inline void tx_state(state_t state) {
-  static const char state_str[][16] = {
-    "STATE_LISTEN\n",
-    "STATE_HEADER\n",
-    "STATE_BODY\n",
-    "STATE_CKSUM\n",
-    "STATE_UNROLL\n",
-    "STATE_EXECUTE\n",
-    "STATE_ACK\n",
-    "STATE_NAK\n"
-  };
-  serial_tx(state_str[state], strlen(state_str[state]));
 }

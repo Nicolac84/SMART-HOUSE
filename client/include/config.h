@@ -13,9 +13,11 @@ typedef struct _config_s {
   char pwm[8][PIN_MAX_LEN+1];
 } config_t;
 
+// Global configuration instance
 extern config_t config;
 
 // Fetch the current config from the AVR
+// Returns 0 on success, 1 on failure
 uint8_t config_fetch(void);
 
 // Returns the pin number for the pin named 'pin_name'

@@ -1,0 +1,10 @@
+objects/*
+target/*
+
+client/objects/*
+client/target/*
+
+!objects/.gitkeep
+!target/.gitkeep
+!client/objects/.gitkeep
+!client/target/.gitkeep

@@ -67,12 +67,8 @@ target: $(TARGET) ;
 
 flash: target/$(PROGNAME).hex ;
 
-install:
-	install -m 0755 target/host/$(PROGNAME) /usr/bin/$(PROGNAME)
-	strip /usr/bin/$(PROGNAME)
-
 clean:	
-	rm -f $(OBJDIR)/**/*.o $(BINS) target/*
+	rm -f $(OBJDIR)/*.o $(BINS) target/* client/objects/* client/target/*
 
 
-.PHONY:	clean all target flash install
+.PHONY:	clean all target flash

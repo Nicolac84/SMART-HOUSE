@@ -10,6 +10,12 @@
 #include <ctype.h>
 #define PIN_NAME_MAX_LEN 64
 
+// Print an error message and exit from a shell command
+#define sh_error(msg) do {\
+  fprintf(SH_OUT_STREAM, "%s\n", msg);\
+  return;\
+} while (0)
+
 
 // Get the pin number from its identifying string (e.g. PWM0)
 static com_pin_t get_pin_from_id(const char *name) {
@@ -40,7 +46,6 @@ static const size_t cmd_count;
 
 // Print a list of all the commands
 static void cmd_help(int argc, char *argv[]) {
-  fputs("Shell commands:\n", SH_OUT_STREAM);
   for (size_t i=0; i < cmd_count; ++i)
     fprintf(SH_OUT_STREAM, "%s\n", cmd_table[i].name);
 }
@@ -56,19 +61,24 @@ static void cmd_echo(int argc, char *argv[]) {
 // List all pins (along with names)
 static void cmd_list(int argc, char *argv[]) {
   if (argc != 1) sh_error("Usage: list");
-  fputs("PIN      | TYPE       | PIN NAME\n", SH_OUT_STREAM);
+  fputs("\nPIN      | TYPE    | PIN NAME\n"
+        "---------+---------+---------------------------------------\n",
+        SH_OUT_STREAM);
+
 
   for (unsigned char pin=COM_PWM0; pin <= COM_PWM7; ++pin)
-    fprintf(SH_OUT_STREAM, "PWM%1hhu     | PWM        | %s\n",
-        pin - COM_PWM0 + 1, config_get_pin_name(pin));
+    fprintf(SH_OUT_STREAM, "PWM%1hhu     | PWM     | %s\n",
+        pin - COM_PWM0, config_get_pin_name(pin));
 
   for (unsigned char pin=COM_ANALOG0; pin <= COM_ANALOG7; ++pin)
-    fprintf(SH_OUT_STREAM, "ANALOG%1hhu     | ANALOG        | %s\n",
-        pin - COM_ANALOG0 + 1, config_get_pin_name(pin));
+    fprintf(SH_OUT_STREAM, "ANALOG%1hhu  | ANALOG  | %s\n",
+        pin - COM_ANALOG0, config_get_pin_name(pin));
 
   for (unsigned char pin=COM_DIGITIN0; pin <= COM_DIGITIN7; ++pin)
-    fprintf(SH_OUT_STREAM, "DIGITIN%1hhu     | DIGITIN        | %s\n",
-        pin - COM_DIGITIN0 + 1, config_get_pin_name(pin));
+    fprintf(SH_OUT_STREAM, "DIGITIN%1hhu | DIGITIN | %s\n",
+        pin - COM_DIGITIN0, config_get_pin_name(pin));
+
+  fputc('\n', SH_OUT_STREAM);
 }
 
 
@@ -95,6 +105,7 @@ static void cmd_set_pin_name(int argc, char *argv[]) {
   if (pin == COM_PIN_NULL)
     sh_error("Could not get given pin");
 
+  communication_set_pin_name(pin, argv[2]);
   config_set_pin(pin, argv[2]);
 }
 
@@ -106,57 +117,72 @@ static void cmd_get_pin_value(int argc, char *argv[]) {
   com_pin_t pin = config_get_pin(argv[1]);
   if (pin == COM_PIN_NULL)
     sh_error("Could not get given pin");
- communication_send(pin,COM_OP_GET_VAL,0,0);
- packet_t val ;
-communication_recv(&val);
- fprintf(SH_OUT_STREAM,"value = %hhu \n", *((uint8_t *) val.body));
 
+  com_handle_send_void(pin, COM_OP_GET_VAL, 0, 0, SH_OUT_STREAM,
+      "Error while sending packet");
+
+  packet_t p[1];
+  com_handle_recv_void(p, SH_OUT_STREAM, "Error while receiving packet");
+
+  fprintf(SH_OUT_STREAM, "value = %hhu \n", *((uint8_t*) p->body));
 }
 
 
 // Set current value for a pin
 static void cmd_set_pin_value(int argc, char *argv[]) {
-  if (argc != 2) sh_error("Usage: set_pin_value <pin-name>");
+  if (argc != 3) sh_error("Usage: set_pin_value <pin> <pin-name>");
 
   com_pin_t pin = config_get_pin(argv[1]);
   if (pin == COM_PIN_NULL)
     sh_error("Could not get given pin");
   uint8_t val =(uint8_t) atoi(argv[2]);
-  communication_send(pin,COM_OP_SET_VAL,1,&val);
+  com_handle_send_void(pin, COM_OP_SET_VAL, 1, &val, SH_OUT_STREAM,
+      "Error while sending packet");
+
+  packet_t p[1];
+  com_handle_recv_void(p, SH_OUT_STREAM, "Error while receiving packet");
 }
 
 
 // Turn a pin ON
 static void cmd_pin_on(int argc, char *argv[]) {
-
-  if (argc != 2) sh_error("Usage: set_pin_value <pin-name>");
+  if (argc != 2) sh_error("Usage: pin_on <pin-name>");
 
   com_pin_t pin = config_get_pin(argv[1]);
   if (pin == COM_PIN_NULL)
     sh_error("Could not get given pin");
 
-  communication_send(pin,COM_OP_ON,0,0);
+  com_handle_send_void(pin, COM_OP_ON, 0, NULL, SH_OUT_STREAM,
+      "Error while sending packet");
 
-
+  packet_t p[1];
+  com_handle_recv_void(p, SH_OUT_STREAM, "Error while receiving packet");
 }
 
 // Turn a pin OFF
 static void cmd_pin_off(int argc, char *argv[]) {
-  if (argc != 2) sh_error("Usage: set_pin_value <pin-name>");
+  if (argc != 2) sh_error("Usage: pin_off <pin-name>");
 
   com_pin_t pin = config_get_pin(argv[1]);
   if (pin == COM_PIN_NULL)
     sh_error("Could not get given pin");
 
-  communication_send(pin,COM_OP_OFF,0,0);
+  com_handle_send_void(pin, COM_OP_OFF, 0, NULL, SH_OUT_STREAM,
+      "Error while sending packet");
 
+  packet_t p[1];
+  com_handle_recv_void(p, SH_OUT_STREAM, "Error while receiving packet");
 }
 
 // Make the AVR board save its current status into its EEPROM memory
 static void cmd_save_status(int argc, char *argv[]) {
+  if (argc != 1) sh_error("Usage: save-status");
 
+  com_handle_send_void(COM_PIN_NULL, COM_OP_SAVE_STATUS, 0, NULL,
+      SH_OUT_STREAM, "Error while sending packet");
 
-
+  packet_t p[1];
+  com_handle_recv_void(p, SH_OUT_STREAM, "Error while receiving packet");
 }
 
 
@@ -165,37 +191,28 @@ static shell_cmd_t cmd_table[] = {
   { .name = "help", .execute = cmd_help },
   { .name = "echo", .execute = cmd_echo },
   { .name = "list", .execute = cmd_list },
-  { .name = "get_pin_name", .execute = cmd_get_pin_name },
-  { .name = "set_pin_name", .execute = cmd_set_pin_name },
-  { .name = "get_pin_value", .execute = cmd_get_pin_value },
-  { .name = "set_pin_value", .execute = cmd_set_pin_value },
-  { .name = "pin_on", .execute = cmd_pin_on },
-  { .name = "pin_off", .execute = cmd_pin_off },
-  { .name = "save_status", .execute = cmd_save_status }
+  { .name = "get-pin-name", .execute = cmd_get_pin_name },
+  { .name = "set-pin-name", .execute = cmd_set_pin_name },
+  { .name = "get-pin-value", .execute = cmd_get_pin_value },
+  { .name = "set-pin-value", .execute = cmd_set_pin_value },
+  { .name = "pin-on", .execute = cmd_pin_on },
+  { .name = "pin-off", .execute = cmd_pin_off },
+  { .name = "save-status", .execute = cmd_save_status }
 };
 
-// Auxiliary variables for the shell commands table
 static const size_t cmd_count = sizeof(cmd_table) / sizeof(shell_cmd_t);
-static unsigned char cmd_table_ordered = 0; // Is the command table ordered?
 
 
 /* --------------------------
  *  Module functions
  * -------------------------- */
 
-// Compare two commands
-static int cmd_compare(const void *cmd1, const void *cmd2) {
-  if (!cmd1 && !cmd2) return 0;
-  if (!cmd1) return -1;
-  if (!cmd2) return  1;
-  const shell_cmd_t *_cmd1 = cmd1, *_cmd2 = cmd2;
-  return strcmp(_cmd1->name, _cmd2->name);
-}
-
 // Find a command (returns NULL if not found)
 static shell_cmd_t *cmd_find(const shell_cmd_t *table, const char *name) {
-  const shell_cmd_t c = { .name = (char*) name };
-  return bsearch(&c, cmd_table, cmd_count, sizeof(shell_cmd_t), cmd_compare);
+  if (!table || !name) return NULL;
+  for (size_t i=0; i < cmd_count; ++i)
+    if (strcmp(cmd_table[i].name, name) == 0) return cmd_table + i;
+  return NULL;
 }
 
 // Tokenize a string
@@ -208,17 +225,8 @@ static int tokenize(char *line, char *argv[]) {
   return argc;
 }
 
-// Initialize the shell module
-static void order_commands(void) {
-  // Order the commands table for O(log_n) lookup
-  if (cmd_table_ordered) return;
-  cmd_table_ordered = 1;
-  qsort(cmd_table, cmd_count, sizeof(shell_cmd_t), cmd_compare);
-}
-
 // Initialize and launch the client shell
 void shell_main(void) {
-  order_commands();
   fputs(
       "Smart House client\n"
       "Run 'help' for a list of available commands\n"

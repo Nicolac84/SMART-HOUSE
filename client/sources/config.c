@@ -9,14 +9,24 @@ config_t config;
 
 
 // Fetch the current config from the AVR
-uint8_t config_fetch(void) {
-  for (com_pin_t pin=COM_PWM0; pin <= COM_PWM7; ++pin)
-    get_pin_name(pin, config.pwm[pin - COM_PWM0]);
-  for (com_pin_t pin=COM_ANALOG0; pin <= COM_ANALOG7; ++pin)
-    get_pin_name(pin, config.pwm[pin - COM_ANALOG0]);
-  for (com_pin_t pin=COM_DIGITIN0; pin <= COM_DIGITIN7; ++pin)
-    get_pin_name(pin, config.pwm[pin - COM_DIGITIN0]);
+// Returns 0 on success, 1 on failure
+static inline int _config_fetch() {
+  for (uint8_t pin=0; pin < 8; ++pin)
+    if (communication_get_pin_name(pin+COM_PWM0, config.pwm[pin]))
+      return 1;
+  for (uint8_t pin=0; pin < 8; ++pin)
+    if (communication_get_pin_name(pin+COM_ANALOG0, config.analog[pin]))
+      return 1;
+  for (uint8_t pin=0; pin < 8; ++pin)
+    if (communication_get_pin_name(pin+COM_DIGITIN0, config.digital_in[pin]))
+      return 1;
   return 0;
+}
+
+uint8_t config_fetch(void) {
+  if (_config_fetch() == 0) return 0;
+  fprintf(stderr, "Error while fetching configuration");
+  return 1;
 }
 
 
@@ -24,12 +34,15 @@ uint8_t config_fetch(void) {
 com_pin_t config_get_pin(const char *pin_name) {
   if (!pin_name) return COM_PIN_NULL;
 
-  for (unsigned char pin=0; pin < 7; ++pin)
-    if (strcmp(pin_name, config.pwm[pin]) == 0) return pin + COM_PWM0;
-  for (unsigned char pin=0; pin < 7; ++pin)
-    if (strcmp(pin_name, config.analog[pin]) == 0) return pin + COM_ANALOG0;
-  for (unsigned char pin=0; pin < 7; ++pin)
-    if (strcmp(pin_name, config.digital_in[pin]) == 0) return pin + COM_DIGITIN0;
+  for (unsigned char pin=0; pin < 8; ++pin)
+    if (strcmp(pin_name, config.pwm[pin]) == 0)
+      return pin + COM_PWM0;
+  for (unsigned char pin=0; pin < 8; ++pin)
+    if (strcmp(pin_name, config.analog[pin]) == 0)
+      return pin + COM_ANALOG0;
+  for (unsigned char pin=0; pin < 8; ++pin)
+    if (strcmp(pin_name, config.digital_in[pin]) == 0)
+      return pin + COM_DIGITIN0;
 
   return COM_PIN_NULL;
 }

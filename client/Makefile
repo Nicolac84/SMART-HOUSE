@@ -24,7 +24,7 @@ TARGET := target/$(PROGNAME)
 CC := gcc
 AS := gcc
 CFLAGS := -Wall --std=gnu99 -O2 -funsigned-char -funsigned-bitfields\
- -fshort-enums -Wstrict-prototypes -I$(INCDIR)
+ -fshort-enums -Wno-nonnull -I$(INCDIR)
 
 
 $(OBJDIR)/%.o:	%.c 
@@ -39,13 +39,13 @@ $(TARGET):	$(OBJECTS)
 target: $(TARGET) ;
 
 install:
-	install -m 0755 target/host/$(PROGNAME) /usr/bin/$(PROGNAME)
+	install -m 0755 target/$(PROGNAME) /usr/bin/$(PROGNAME)
 	strip /usr/bin/$(PROGNAME)
 
-test-shell: test-shell.c $(SRCDIR)/shell.c
-	$(CC) $(CFLAGS) -o $@ $^
+debug: CFLAGS += -DDEBUG -ggdb
+debug: target ;
 
-clean:	
+clean:
 	rm -f $(OBJDIR)/*.o $(BINS) target/*
 
 

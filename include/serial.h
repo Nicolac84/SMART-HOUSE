@@ -4,8 +4,8 @@
 #define __SERIAL_H
 #include <stdint.h>
 
-#define BAUD_RATE 19200
-#define MYUBRR (F_CPU / 16 / BAUD_RATE - 1)
+#define BAUD_RATE 115200
+#define MYUBRR (F_CPU / 8 / BAUD_RATE - 1)
 
 // Initialize the serial port
 void serial_init(void);

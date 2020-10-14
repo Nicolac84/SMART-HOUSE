@@ -10,6 +10,7 @@ static const uint8_t channel_selectors[8] = {
 
 
 // Initialization
+// TODO: Initialize PORT/DDR
 void analog_init(void) {
   ADMUX = (1 << REFS1) | (1 << REFS0); // 2.56V Internal Reference
   ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);

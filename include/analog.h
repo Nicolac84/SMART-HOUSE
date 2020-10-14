@@ -14,7 +14,6 @@ void analog_init(void);
 
 // Start a conversion and enter in ADC Noise Reduction sleep mode until the
 // conversion completes
-
 uint8_t analog_convert(uint8_t adc_pin);
 
 #endif  // __ANALOG_MODULE_H

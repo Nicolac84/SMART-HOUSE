@@ -8,6 +8,7 @@
 #define SH_PROMPT "> "
 #define SH_LINE_MAX_LEN 510
 
+// Shell command data type
 typedef struct _shell_cmd_s {
   char *name;
   void (*execute)(int argc, char *argv[]);
