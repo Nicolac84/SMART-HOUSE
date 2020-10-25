@@ -1,4 +1,4 @@
-// Smart House
+// Smart House - Nicola Colao
 // Communication module
 #ifndef __COMMUNICATION_H
 #define __COMMUNICATION_H

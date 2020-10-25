@@ -25,6 +25,7 @@ static volatile uint8_t tx_transmitted;
 #define rx_int_off() do { UCSR0B &= ~(1 << RXCIE0); } while (0)
 #define tx_int_off() do { UCSR0B &= ~(1 << TXCIE0); } while (0)
 
+// Initialize the serial port
 void serial_init(void) {
   // RX buffer initialization
   ringbuffer_new((ringbuf_t*) rx_buffer,

@@ -1,4 +1,5 @@
-// Smart House - PWM module
+// Smart House - Nicola Colao
+// PWM output port handling module
 #ifndef __PWM_MODULE_H
 #define __PWM_MODULE_H
 #include <stdint.h>

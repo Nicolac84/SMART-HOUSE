@@ -30,7 +30,7 @@ ASFLAGS := -x assembler-with-cpp $(CFLAGS)
 
 AVRDUDE := avrdude
 AVRDUDE_PROGRAMMER := wiring
-AVRDUDE_PORT := /dev/ttyUSB0
+AVRDUDE_PORT := /dev/ttyACM0
 AVRDUDE_CONFIG != find /usr/share/arduino/hardware -name avrdude.conf
 AVRDUDE_NO_VERIFY := -V
 
@@ -67,8 +67,17 @@ target: $(TARGET) ;
 
 flash: target/$(PROGNAME).hex ;
 
+client:
+	@cd client/ && make
+
+client-debug:
+	@cd client/ && make clean debug
+
+install:
+	@cd client/ && make install
+
 clean:	
 	rm -f $(OBJDIR)/*.o $(BINS) target/* client/objects/* client/target/*
 
 
-.PHONY:	clean all target flash
+.PHONY:	clean all target flash client

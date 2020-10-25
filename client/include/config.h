@@ -1,4 +1,4 @@
-// Smart House
+// Smart House - Nicola Colao
 // Config status module
 #ifndef __CONFIG_STATUS_H
 #define __CONFIG_STATUS_H

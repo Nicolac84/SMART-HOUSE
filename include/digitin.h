@@ -1,3 +1,5 @@
+// Smart House - Nicola Colao
+// Digital Input port handling module
 #ifndef __DIGITAL_INPUT_H
 #define __DIGITAL_INPUT_H
 #include <stdint.h>

@@ -33,6 +33,8 @@ int serial_open(const char *dev) {
   tcgetattr(dev_fd, &dev_io);
 
   // Serial communication parameters
+  // Completely raw communication, undefined special characters, no escape
+  // characters, 8N1, no echo
   dev_io.c_iflag &= ~(IXON | IXOFF | IXANY | BRKINT | ICRNL | IMAXBEL);
   dev_io.c_iflag |= IGNBRK;
   dev_io.c_oflag = 0;

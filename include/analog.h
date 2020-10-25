@@ -1,3 +1,4 @@
+// Smart House - Nicola Colao
 // Analog I/O using AVR embedded ADC
 #ifndef __ANALOG_MODULE_H
 #define __ANALOG_MODULE_H

@@ -1,5 +1,5 @@
-// Smart House
-// Serial Module
+// Smart House - Nicola Colao
+// Serial module
 #ifndef __SERIAL_H
 #define __SERIAL_H
 #include <stdint.h>

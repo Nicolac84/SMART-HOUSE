@@ -1,9 +1,8 @@
 // Analog I/O using AVR embedded ADC
 #include <avr/io.h>
-#include <avr/sleep.h>
-#include <avr/interrupt.h>
 #include "analog.h"
 
+// ADMUX value for each channel
 static const uint8_t channel_selectors[8] = {
   0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
 };
@@ -24,7 +23,7 @@ uint8_t analog_convert(uint8_t adc_pin) {
   ADMUX |= channel_selectors[adc_pin]; // Select channel
 
   // Busy wait until conversion complete
-  ADCSRA |= (1 << ADSC);
+  ADCSRA |= (1 << ADSC);  // Start conversion
   while (! (ADCSRA & (1 << ADIF))) ;
   uint8_t adc_result = ADC;
 

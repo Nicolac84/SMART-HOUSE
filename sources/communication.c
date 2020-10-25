@@ -9,16 +9,18 @@
 // Map communication pin values to effective values
 static uint8_t pinmap(uint8_t com);
 
+// Create a packet
 uint8_t packet_create(packet_t *p, uint8_t pin, uint8_t operation, 
     uint8_t body_size, const void *body){
   if (!p || pin > COM_DIGITIN7 || operation >= COM_OP_LIMIT ||
       body_size > BODY_MAX_LEN || (!body && body_size))
     return 1;
 
-  p->header = packet_header(pin, operation, body_size);
+  p->header = packet_header(pin, operation, body_size); // Header
 
-  if (body) memcpy(p->body, body, body_size);
+  if (body) memcpy(p->body, body, body_size); // Body
 
+  // Checksum
   checksum_t cksum = packet_checksum(p);
   memcpy(p->body + body_size, &cksum, sizeof(cksum));
 
@@ -26,7 +28,7 @@ uint8_t packet_create(packet_t *p, uint8_t pin, uint8_t operation,
 }
 
 
-// Computes and returns the uncomplemented checksum
+// Computes and returns the XOR checksum
 static checksum_t _checksum(const void *data, uint8_t size) {
   checksum_t checksum = 0;
   for (uint8_t i=0; i < size; ++i)
@@ -47,6 +49,7 @@ uint8_t packet_validate(const packet_t *p) {
 }
 
 
+// Create in-place and send a packet
 void communication_send(uint8_t pin, uint8_t operation, uint8_t body_size,
     const void *body) {
   packet_t p[1];

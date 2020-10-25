@@ -1,4 +1,4 @@
-// Smart House
+// Smart House - Nicola Colao
 // Serial module
 #ifndef __SERIAL_H
 #define __SERIAL_H

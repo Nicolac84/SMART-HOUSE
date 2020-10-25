@@ -1,4 +1,4 @@
-// Smart House
+// Smart House - Nicola Colao
 // Client Shell
 #ifndef __CLIENT_SHELL_MODULE_H
 #define __CLIENT_SHELL_MODULE_H

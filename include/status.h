@@ -1,3 +1,5 @@
+// Smart House - Nicola Colao
+// Device status module
 #ifndef __STATUS_H
 #define __STATUS_H
 #include <stdint.h>

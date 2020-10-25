@@ -1,3 +1,5 @@
+// Smart House - Nicola Colao
+// Communication interface
 #ifndef __COMMUNICATION_H
 #define __COMMUNICATION_H
 #include <stdint.h>

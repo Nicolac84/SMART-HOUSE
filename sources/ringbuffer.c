@@ -13,20 +13,24 @@
 #define calc_shifted(b,i) ((i+1) % b->size)
 
 
+// Create a new ringbuffer
 uint8_t ringbuffer_new(ringbuf_t *buf, uint8_t *raw, uint8_t raw_size) {
   if (!buf || !raw || raw_size < 2) return 1;
   *buf = (ringbuf_t) { raw, 0, 0, raw_size, 0 };
   return 0;
 }
 
+// Return the ringbuffer capacity
 uint8_t ringbuffer_size(const ringbuf_t *buf) { return buf ? buf->size : 0; }
 
+// Return the number of items in the ringbuffer
 uint8_t ringbuffer_used(const ringbuf_t *buf) {
   if (!buf) return 0;
   if (buf->full) return buf->size;
   return calc_virt(buf, buf->last);
 }
 
+// Pop an element out of the ringbuffer
 uint8_t ringbuffer_pop(ringbuf_t *buf, uint8_t *dest) {
   if (!buf || ringbuffer_empty(buf))
     return 1;
@@ -36,6 +40,7 @@ uint8_t ringbuffer_pop(ringbuf_t *buf, uint8_t *dest) {
   return 0;
 }
 
+// Push an element into the ringbuffer
 uint8_t ringbuffer_push(ringbuf_t *buf, uint8_t val) {
   if (!buf || buf->full)
     return 1;
@@ -46,6 +51,7 @@ uint8_t ringbuffer_push(ringbuf_t *buf, uint8_t val) {
   return 0;
 }
 
+// Flush the ringbuffer
 void ringbuffer_reset(ringbuf_t *buf) {
   if (!buf) return;
   buf->first = 0;
