@@ -2,7 +2,7 @@
 #include <avr/eeprom.h>
 #include <string.h>
 
-status_t EEMEM _status_eeprom = (status_t) {
+status_t EEMEM _status_eeprom = {
   .digital_in = {
     "digitin0", "digitin1", "digitin2", "digitin3",
     "digitin4", "digitin5", "digitin6", "digitin7"
@@ -17,7 +17,7 @@ status_t EEMEM _status_eeprom = (status_t) {
   }
 };
 
-status_t status = { 0 };
+status_t status;
 status_t *status_eeprom = &_status_eeprom;
 
 

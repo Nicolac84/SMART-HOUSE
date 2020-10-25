@@ -20,8 +20,8 @@ int main(int argc, const char *argv[]) {
 
   const char *dev_path;
   if (argc == 1) {
-    fprintf(stderr, "Warning: no device path given, assuming /dev/ttyUSB0\n");
-    dev_path = "/dev/ttyUSB2";
+    fprintf(stderr, "Warnig: no device path given, assuming /dev/ttyUSB0\n");
+    dev_path = "/dev/ttyUSB0";
   }
   else dev_path = argv[1];
 

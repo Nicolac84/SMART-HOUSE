@@ -1,4 +1,4 @@
-# Smart House (SO Project) Nicola Colao
+# Smart House (SO Project) - Nicola Colao
 
 ## How to use
 
@@ -51,5 +51,37 @@ Command type | 1 | Selected operation to perform
 Length | 2 | Total packet length in bytes
 Body | Variable | Packet body (max 32 bytes)
 Checksum | 1 | 8-bit XOR integrity checksum
+
+
+## Further specifications
+
+### Software pin mapping
+
+Software | Physical
+:-:|:-:
+PWM0 | PIN2
+PWM1 | PIN3
+PWM2 | PIN5
+PWM3 | PIN6
+PWM4 | PIN7
+PWM5 | PIN8
+PWM6 | PIN11
+PWM7 | PIN12
+ANALOG0 | A0
+ANALOG1 | A1
+ANALOG2 | A2
+ANALOG3 | A3
+ANALOG4 | A4
+ANALOG5 | A5
+ANALOG6 | A6
+ANALOG7 | A7
+DIGITIN0 | PIN37
+DIGITIN1 | PIN36
+DIGITIN2 | PIN35
+DIGITIN3 | PIN34
+DIGITIN4 | PIN33
+DIGITIN5 | PIN32
+DIGITIN6 | PIN31
+DIGITIN7 | PIN30
 
 ---

@@ -228,7 +228,7 @@ static int tokenize(char *line, char *argv[]) {
 // Initialize and launch the client shell
 void shell_main(void) {
   fputs(
-      "Smart House client\n"
+      "Smart House client of Nicola Colao\n"
       "Run 'help' for a list of available commands\n"
       "Press CTRL+D to exit\n"
       "\n", SH_OUT_STREAM);
