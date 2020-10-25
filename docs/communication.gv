@@ -1,0 +1,39 @@
+# Communication automaton graph
+digraph Automaton {
+  node [shape=box,style="filled",color="black",fillcolor="#f0f0de"];
+  bgcolor="transparent";
+  splines="ortho";
+
+
+  listen   [label="LISTEN"];
+  header   [label="HEADER"];
+  body     [label="BODY"];
+  cksum    [label="CKSUM"];
+  unroll   [label="UNROLL"];
+  execute  [label="EXECUTE"];
+  ack      [label="ACK"];
+  nak      [label="NAK"];
+
+  { rank=same; ack; nak; }
+  { rank=same; listen; }
+  { rank=same; header; }
+  { rank=same; body; }
+  { rank=same; cksum; }
+  { rank=same; unroll; }
+  { rank=same; execute; }
+
+  edge [color="#000000"] # Regular control flow
+  listen -> header;
+  header -> body;
+  body -> cksum;
+  cksum -> unroll;
+  unroll -> execute;
+  execute -> ack;
+  execute -> listen;
+  ack -> listen;
+
+  edge [color="#ff0000"] # Errors
+  cksum -> nak;
+  execute -> nak;
+  nak -> listen;
+}
